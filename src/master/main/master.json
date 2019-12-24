@@ -3,5 +3,6 @@
   "apiReadTimeOut": 5000,
   "apiWriteTimeOut": 5000,
   "etcdEndpoints": ["121.36.24.124:2379"],
-  "etcdDialTimeout": 5000
+  "etcdDialTimeout": 5000,
+  "webroot": "./webroot"
 }

@@ -113,20 +113,62 @@ ERR:
 	if bytes, err = common.BuildResponse(-1, err.Error(), nil); err == nil {
 		response.Write(bytes)
 	}
+
+}
+
+//强制杀死某个任务
+//POST /job/kill name = job1
+func handleJobKill(response http.ResponseWriter, request *http.Request) {
+	var (
+		err   error
+		name  string
+		bytes []byte
+	)
+	//1.解析post表单
+	if err = request.ParseForm(); err != nil {
+		goto ERR
+	}
+	//要杀死的任务名
+	name = request.Form.Get("name")
+
+	//杀死任务
+	if err = G_jobMgr.KillJob(name); err != nil {
+		goto ERR
+	}
+	//正常应答
+	if bytes, err = common.BuildResponse(0, "success", nil); err == nil {
+		response.Write(bytes)
+	}
+	return
+
+ERR:
+	//返回异常应答
+	if bytes, err = common.BuildResponse(-1, err.Error(), nil); err == nil {
+		response.Write(bytes)
+	}
+
 }
 
 //初始化服务
 func InitApiServer() (err error) {
 	var (
-		mux        *http.ServeMux
-		listener   net.Listener
-		httpServer *http.Server
+		mux           *http.ServeMux
+		listener      net.Listener
+		httpServer    *http.Server
+		staticDir     http.Dir
+		staticHandler http.Handler
 	)
 	//配置路由
 	mux = http.NewServeMux()
 	mux.HandleFunc("/job/save", handleJobSave)
 	mux.HandleFunc("/job/delete", handleJobDelete)
 	mux.HandleFunc("/job/list", handleJobList)
+	mux.HandleFunc("/job/kill", handleJobKill)
+
+	//静态文件目录
+	staticDir = http.Dir(G_config.Webroot)
+	staticHandler = http.FileServer(staticDir)
+	mux.Handle("/", http.StripPrefix("/", staticHandler))
 
 	//启动TCP监听
 	if listener, err = net.Listen("tcp", ":"+strconv.Itoa(G_config.ApiPort)); err != nil {

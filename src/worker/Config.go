@@ -1,4 +1,4 @@
-package master
+package worker
 
 import (
 	"encoding/json"
@@ -8,12 +8,8 @@ import (
 
 //程序配置
 type Config struct {
-	ApiPort         int      `json:"apiport"`
-	ApiReadTimeOut  int      `json:"apiReadTimeOut"`
-	ApiWriteTimeOut int      `json:"apiWriteTimeOut"`
 	EtcdEndpoints   []string `json:"etcdEndpoints"`
 	EtcdDialTimeout int      `json:"etcdDialTimeout"`
-	Webroot         string   `json:"webroot"`
 }
 
 var (
