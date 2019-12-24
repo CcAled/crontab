@@ -55,6 +55,66 @@ ERR:
 	}
 }
 
+//删除任务接口
+//POST /job/delete name = job1
+func handleJobDelete(response http.ResponseWriter, request *http.Request) {
+	var (
+		err    error
+		name   string
+		oldJob *common.Job
+		bytes  []byte
+	)
+
+	//1.解析post表单
+	if err = request.ParseForm(); err != nil {
+		goto ERR
+	}
+
+	//删除的任务名
+	name = request.PostForm.Get("name")
+
+	//删除任务
+	if oldJob, err = G_jobMgr.DeleteJob(name); err != nil {
+		goto ERR
+	}
+	//正常应答
+	if bytes, err = common.BuildResponse(0, "success", oldJob); err == nil {
+		response.Write(bytes)
+	}
+	return
+
+ERR:
+	//6.返回异常应答
+	if bytes, err = common.BuildResponse(-1, err.Error(), nil); err == nil {
+		response.Write(bytes)
+	}
+}
+
+//列举所有crontab任务
+func handleJobList(response http.ResponseWriter, request *http.Request) {
+	var (
+		jobList []*common.Job
+		err     error
+		bytes   []byte
+	)
+	//获取任务列表
+	if jobList, err = G_jobMgr.ListJob(); err != nil {
+		goto ERR
+	}
+
+	//正常应答
+	if bytes, err = common.BuildResponse(0, "success", jobList); err == nil {
+		response.Write(bytes)
+	}
+	return
+
+ERR:
+	//返回异常应答
+	if bytes, err = common.BuildResponse(-1, err.Error(), nil); err == nil {
+		response.Write(bytes)
+	}
+}
+
 //初始化服务
 func InitApiServer() (err error) {
 	var (
@@ -65,6 +125,8 @@ func InitApiServer() (err error) {
 	//配置路由
 	mux = http.NewServeMux()
 	mux.HandleFunc("/job/save", handleJobSave)
+	mux.HandleFunc("/job/delete", handleJobDelete)
+	mux.HandleFunc("/job/list", handleJobList)
 
 	//启动TCP监听
 	if listener, err = net.Listen("tcp", ":"+strconv.Itoa(G_config.ApiPort)); err != nil {
