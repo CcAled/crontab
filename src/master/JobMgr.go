@@ -145,12 +145,12 @@ func (jobMgr *JobMgr) KillJob(name string) (err error) {
 	//向/cron/kill/任务名更新
 
 	var (
-		killerkey      string
+		killerKey      string
 		leaseGrantResp *clientv3.LeaseGrantResponse
 		leaseId        clientv3.LeaseID
 	)
 
-	killerkey = common.JOB_KILLER_DIR + name
+	killerKey = common.JOB_KILLER_DIR + name
 
 	//让worker监听到一次put，然后自动过期
 	if leaseGrantResp, err = jobMgr.lease.Grant(context.TODO(), 1); err != nil {
@@ -158,7 +158,7 @@ func (jobMgr *JobMgr) KillJob(name string) (err error) {
 	}
 	leaseId = leaseGrantResp.ID
 
-	if _, err = jobMgr.kv.Put(context.TODO(), killerkey, "", clientv3.WithLease(leaseId)); err != nil {
+	if _, err = jobMgr.kv.Put(context.TODO(), killerKey, "", clientv3.WithLease(leaseId)); err != nil {
 		return
 	}
 	return

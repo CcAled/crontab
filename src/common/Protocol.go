@@ -1,6 +1,7 @@
 package common
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/gorhill/cronexpr"
 	"strings"
@@ -36,9 +37,11 @@ type JobSchedulePlan struct {
 
 //任务执行状态
 type JobExecuteInfo struct {
-	Job      *Job
-	PlanTime time.Time //理论上的调度时间
-	RealTime time.Time //实际上的调度时间
+	Job        *Job
+	PlanTime   time.Time          //理论上的调度时间
+	RealTime   time.Time          //实际上的调度时间
+	CancelCtx  context.Context    //用于取消任务
+	CancelFunc context.CancelFunc //用于取消任务
 }
 
 //任务执行结果
@@ -48,6 +51,33 @@ type JobExecuteResult struct {
 	Err         error           //脚本错误原因
 	StartTime   time.Time       //启动时间
 	EndTime     time.Time       //结束时间
+}
+
+//任务执行日志
+type JobLog struct {
+	JobName      string `bson:"jobName"`
+	Command      string `bson:"command"`
+	Err          string `bson:"err"`
+	Output       string `bson:"output"`
+	PlanTime     int64  `bson:"planTime"`     //计划开始时间
+	ScheduleTime int64  `bson:"scheduleTime"` //实际调度时间
+	StartTime    int64  `bson:"startTime"`    //任务执行开始时间
+	EndTime      int64  `bson:"endTime"`      //任务执行结束时间
+}
+
+//日志批次
+type LogBatch struct {
+	Logs []interface{} //多条日志
+}
+
+//查询条件
+type JobLogFilter struct {
+	JobName string `bson:"jobName"`
+}
+
+//任务日志排序规则
+type SortLogByStartTime struct {
+	SortOrder int `bson:"startTime"` //按startTime: -1
 }
 
 //应答方法
@@ -85,6 +115,11 @@ func ExtractJobName(jobKey string) string {
 	return strings.TrimPrefix(jobKey, JOB_SAVE_DIR)
 }
 
+//从killer目录中提取任务名
+func ExtractKillerName(killerKey string) string {
+	return strings.TrimPrefix(killerKey, JOB_KILLER_DIR)
+}
+
 //变化事件构造
 func BuildJobEvent(eventType int, job *Job) (jobEvent *JobEvent) {
 	return &JobEvent{
@@ -118,5 +153,6 @@ func BuildJobExecuteInfo(jobschedulePlan *JobSchedulePlan) (jobExecuteInfo *JobE
 		PlanTime: jobschedulePlan.NextTime,
 		RealTime: time.Now(),
 	}
+	jobExecuteInfo.CancelCtx, jobExecuteInfo.CancelFunc = context.WithCancel(context.TODO())
 	return
 }

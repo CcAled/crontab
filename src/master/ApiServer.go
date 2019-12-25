@@ -149,6 +149,52 @@ ERR:
 
 }
 
+//查询任务日志
+func handleJobLog(response http.ResponseWriter, request *http.Request) {
+	var (
+		err        error
+		name       string
+		skipParam  string //从第几条开始
+		limitParam string //返回多少条
+		skip       int64
+		limit      int64
+		logArr     []*common.JobLog
+		bytes      []byte
+	)
+	//解析GET参数
+	if err = request.ParseForm(); err != nil {
+		goto ERR
+	}
+
+	//获取请求参数 /job/log?name=job1&skip=0&limit=10
+	name = request.Form.Get("name")
+	skipParam = request.Form.Get("skip")
+	limitParam = request.Form.Get("limit")
+	if skip, err = strconv.ParseInt(skipParam, 10, 64); err != nil {
+		skip = 0
+	}
+	if limit, err = strconv.ParseInt(limitParam, 10, 64); err != nil {
+		limit = 20
+	}
+
+	if logArr, err = G_logMgr.ListLog(name, skip, limit); err != nil {
+		goto ERR
+	}
+
+	//正常应答
+	if bytes, err = common.BuildResponse(0, "success", logArr); err == nil {
+		response.Write(bytes)
+	}
+	return
+
+ERR:
+	//返回异常应答
+	if bytes, err = common.BuildResponse(-1, err.Error(), nil); err == nil {
+		response.Write(bytes)
+	}
+
+}
+
 //初始化服务
 func InitApiServer() (err error) {
 	var (
@@ -164,6 +210,7 @@ func InitApiServer() (err error) {
 	mux.HandleFunc("/job/delete", handleJobDelete)
 	mux.HandleFunc("/job/list", handleJobList)
 	mux.HandleFunc("/job/kill", handleJobKill)
+	mux.HandleFunc("/job/log", handleJobLog)
 
 	//静态文件目录
 	staticDir = http.Dir(G_config.Webroot)

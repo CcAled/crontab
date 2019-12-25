@@ -33,9 +33,31 @@ func InitScheduler() (err error) {
 
 //处理任务结果
 func (scheduler *Scheduler) handleJobResult(result *common.JobExecuteResult) {
+	var (
+		jobLog *common.JobLog
+	)
 	//删除执行状态
 	delete(scheduler.jobExecutingTable, result.ExecuteInfo.Job.Name)
 
+	//生成执行日志
+	if result.Err != common.ERR_LOCK_ALREADY_REQUIRED {
+		jobLog = &common.JobLog{
+			JobName:      result.ExecuteInfo.Job.Name,
+			Command:      result.ExecuteInfo.Job.Command,
+			Output:       string(result.Output),
+			PlanTime:     result.ExecuteInfo.PlanTime.UnixNano() / 1000 / 1000,
+			ScheduleTime: result.ExecuteInfo.RealTime.UnixNano() / 1000 / 1000,
+			StartTime:    result.StartTime.UnixNano() / 1000 / 1000,
+			EndTime:      result.EndTime.UnixNano() / 1000 / 1000,
+		}
+		if result.Err != nil {
+			jobLog.Err = result.Err.Error()
+		} else {
+			jobLog.Err = ""
+		}
+	}
+	//日志存储到MONGODB
+	G_logSink.Append(jobLog)
 	fmt.Println("任务执行完成:", result.ExecuteInfo.Job.Name, string(result.Output), result.Err)
 }
 
@@ -78,6 +100,8 @@ func (scheduler *Scheduler) PushJobEvent(jobEvent *common.JobEvent) {
 func (scheduler *Scheduler) handleJobEvent(jobEvent *common.JobEvent) {
 	var (
 		jobSchedulePlan *common.JobSchedulePlan
+		jobExecuteInfo  *common.JobExecuteInfo
+		jobExecuting    bool
 		jobExisted      bool
 		err             error
 	)
@@ -90,6 +114,11 @@ func (scheduler *Scheduler) handleJobEvent(jobEvent *common.JobEvent) {
 	case common.JOB_EVENT_DELETE: //删除任务事件
 		if jobSchedulePlan, jobExisted = scheduler.jobPlanTable[jobEvent.Job.Name]; jobExisted {
 			delete(scheduler.jobPlanTable, jobEvent.Job.Name)
+		}
+	case common.JOB_EVENT_KILL: //强杀任务事件
+		//判断任务是否正在执行
+		if jobExecuteInfo, jobExecuting = scheduler.jobExecutingTable[jobEvent.Job.Name]; jobExecuting {
+			jobExecuteInfo.CancelFunc() //出发command杀死shell子进程
 		}
 	}
 }
