@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/DataDog/zstd v1.4.4 // indirect
 	github.com/coreos/etcd v3.3.18+incompatible
+	github.com/coreos/go-systemd v0.0.0-00010101000000-000000000000 // indirect
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/gogo/protobuf v1.3.1 // indirect
@@ -19,3 +20,5 @@ require (
 	google.golang.org/genproto v0.0.0-20191220175831-5c49e3ecc1c1 // indirect
 	google.golang.org/grpc v1.26.0 // indirect
 )
+
+replace github.com/coreos/go-systemd => D:\apps\Go\GOPATH\pkg\mod\github.com\coreos\go-systemd

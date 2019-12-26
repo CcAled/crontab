@@ -4,5 +4,6 @@
   "mongodbUri": "mongodb://121.36.24.124:27017",
   "mongodbConnectTimeout": 5000,
   "jobLogBatchSize": 100,
-  "jobLogCommitTimeout": 1000
+  "jobLogCommitTimeout": 1000,
+  "bashDir": "D:\\apps\\Git\\bin\\bash.exe"
 }
